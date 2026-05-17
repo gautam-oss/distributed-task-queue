@@ -1,0 +1,16 @@
+app = "dtq-redis"
+primary_region = "sin"
+
+[build]
+  image = "redis:7-alpine"
+
+[[vm]]
+  size   = "shared-cpu-1x"
+  memory = "256mb"
+
+[mounts]
+  source      = "redis_data"
+  destination = "/data"
+
+[processes]
+  app = "redis-server --appendonly yes --bind 0.0.0.0"
