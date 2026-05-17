@@ -9,20 +9,13 @@ from ..models.task import DashboardStats
 
 logger = logging.getLogger(__name__)
 
-_redis_host = os.getenv("REDIS_HOST", "localhost")
-_redis_port = int(os.getenv("REDIS_PORT", 6379))
-
-# db=0 — broker: holds queue lists
-_broker_client = redis.Redis(
-    host=_redis_host, port=_redis_port,
-    db=int(os.getenv("REDIS_DB_BROKER", 0)),
+# Use full URLs so TLS (rediss://) works for both local Docker and Upstash
+_broker_client = redis.from_url(
+    os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0"),
     decode_responses=True,
 )
-
-# db=1 — backend: holds celery-task-meta-* result keys
-_backend_client = redis.Redis(
-    host=_redis_host, port=_redis_port,
-    db=int(os.getenv("REDIS_DB_BACKEND", 1)),
+_backend_client = redis.from_url(
+    os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/1"),
     decode_responses=True,
 )
 

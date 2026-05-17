@@ -11,14 +11,6 @@ services:
         sync: false
       - key: CELERY_RESULT_BACKEND
         sync: false
-      - key: REDIS_HOST
-        sync: false
-      - key: REDIS_PORT
-        value: "6379"
-      - key: REDIS_DB_BROKER
-        value: "0"
-      - key: REDIS_DB_BACKEND
-        value: "1"
       - key: API_KEY
         generateValue: true
       - key: APP_ENV
