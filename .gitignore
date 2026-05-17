@@ -49,3 +49,6 @@ logs/
 
 # Docker
 .dockerignore
+
+# Claude Code local settings
+.claude/

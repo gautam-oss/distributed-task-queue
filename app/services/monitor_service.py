@@ -9,16 +9,26 @@ from ..models.task import DashboardStats
 
 logger = logging.getLogger(__name__)
 
-_redis_client = redis.Redis(
-    host=os.getenv("REDIS_HOST", "localhost"),
-    port=int(os.getenv("REDIS_PORT", 6379)),
+_redis_host = os.getenv("REDIS_HOST", "localhost")
+_redis_port = int(os.getenv("REDIS_PORT", 6379))
+
+# db=0 — broker: holds queue lists
+_broker_client = redis.Redis(
+    host=_redis_host, port=_redis_port,
     db=int(os.getenv("REDIS_DB_BROKER", 0)),
+    decode_responses=True,
+)
+
+# db=1 — backend: holds celery-task-meta-* result keys
+_backend_client = redis.Redis(
+    host=_redis_host, port=_redis_port,
+    db=int(os.getenv("REDIS_DB_BACKEND", 1)),
     decode_responses=True,
 )
 
 
 def get_queue_length(queue_name: str) -> int:
-    return _redis_client.llen(queue_name)
+    return _broker_client.llen(queue_name)
 
 
 def get_dashboard_stats() -> DashboardStats:
@@ -32,10 +42,10 @@ def get_dashboard_stats() -> DashboardStats:
 
     cursor = 0
     while True:
-        cursor, keys = _redis_client.scan(cursor, match="celery-task-meta-*", count=100)
+        cursor, keys = _backend_client.scan(cursor, match="celery-task-meta-*", count=100)
         for key in keys:
             try:
-                raw = _redis_client.get(key)
+                raw = _backend_client.get(key)
                 if raw is None:
                     continue
                 meta = json.loads(raw)

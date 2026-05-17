@@ -231,6 +231,41 @@
   .btn-submit:active  { transform: scale(0.98); }
   .btn-submit:disabled { opacity: 0.4; cursor: not-allowed; }
 
+  .batch-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .batch-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .btn-batch {
+    padding: 6px 14px;
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .btn-batch:hover    { border-color: var(--active); background: rgba(72,149,239,0.08); }
+  .btn-batch:disabled { opacity: 0.4; cursor: not-allowed; }
+  .batch-progress {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--active);
+    margin-left: 4px;
+    min-width: 60px;
+  }
+
   /* ── Task log ── */
   .task-log { display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; }
   .task-log::-webkit-scrollbar { width: 4px; }
@@ -400,6 +435,14 @@
         <textarea id="task-payload" rows="5"></textarea>
       </div>
       <button class="btn-submit" id="submit-btn" onclick="submitTask()">Submit Task</button>
+
+      <div class="batch-row">
+        <span class="batch-label">Batch:</span>
+        <button class="btn-batch" onclick="batchSubmit(5)">×5</button>
+        <button class="btn-batch" onclick="batchSubmit(10)">×10</button>
+        <button class="btn-batch" onclick="batchSubmit(20)">×20</button>
+        <span class="batch-progress" id="batch-progress"></span>
+      </div>
     </div>
 
     <div class="panel">
@@ -656,6 +699,53 @@ async function pollStatus(taskId) {
       }
     } catch (_) { break; }
   }
+}
+
+// ── Batch submit ──────────────────────────────────────────────────────────
+async function batchSubmit(count) {
+  const typeEl  = document.getElementById('task-type');
+  const priEl   = document.getElementById('task-priority');
+  const payEl   = document.getElementById('task-payload');
+  const progress = document.getElementById('batch-progress');
+  const btns    = document.querySelectorAll('.btn-batch');
+  const submitBtn = document.getElementById('submit-btn');
+
+  let payload;
+  try {
+    payload = JSON.parse(payEl.value);
+  } catch (_) {
+    showToast('⚠️', 'Invalid JSON', 'Fix the payload before submitting.');
+    return;
+  }
+
+  btns.forEach(b => b.disabled = true);
+  submitBtn.disabled = true;
+
+  let done = 0;
+  const requests = Array.from({ length: count }, async (_, i) => {
+    const uniquePayload = { ...payload };
+    if (uniquePayload.user_id)  uniquePayload.user_id  = `usr_batch_${i + 1}`;
+    if (uniquePayload.amount)   uniquePayload.amount   = parseFloat(((i + 1) * 9.99).toFixed(2));
+    try {
+      const res = await fetch('/api/tasks/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task_type: typeEl.value, priority: priEl.value, payload: uniquePayload }),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      upsertLog({ id: data.task_id, name: typeEl.value, priority: priEl.value, status: 'PENDING' });
+      pollStatus(data.task_id);
+    } catch (_) {}
+    done++;
+    progress.textContent = `${done}/${count}`;
+  });
+
+  await Promise.all(requests);
+  showToast('🚀', `Batch Queued`, `${count} × ${typeEl.value} → ${priEl.value}`);
+  progress.textContent = '';
+  btns.forEach(b => b.disabled = false);
+  submitBtn.disabled = false;
 }
 
 // ── Submit task ────────────────────────────────────────────────────────────

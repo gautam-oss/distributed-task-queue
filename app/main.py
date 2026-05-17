@@ -75,9 +75,11 @@ async def ws_stats(ws: WebSocket) -> None:
     await manager.connect(ws)
     try:
         while True:
-            stats = get_dashboard_stats()
-            payload = stats.model_dump_json()
-            await manager.broadcast(payload)
+            # Run the blocking Redis + Celery inspect calls in a thread so
+            # they never stall the event loop (which would break WS keepalive)
+            loop = asyncio.get_event_loop()
+            stats = await loop.run_in_executor(None, get_dashboard_stats)
+            await manager.broadcast(stats.model_dump_json())
             await asyncio.sleep(2)
     except WebSocketDisconnect:
         manager.disconnect(ws)
