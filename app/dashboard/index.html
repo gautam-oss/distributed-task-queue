@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Task Queue Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0a0e1a;
+    --surface:   #111827;
+    --surface2:  #1a2235;
+    --border:    #1e2d45;
+    --text:      #e2e8f0;
+    --muted:     #64748b;
+    --high:      #ff4d6d;
+    --default:   #ffd60a;
+    --low:       #06d6a0;
+    --active:    #4895ef;
+    --success:   #06d6a0;
+    --failure:   #ff4d6d;
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-ui:   'Space Grotesk', sans-serif;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-ui);
+    min-height: 100vh;
+    background-image:
+      linear-gradient(rgba(72,149,239,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(72,149,239,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  /* ── Header ── */
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10,14,26,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+  .badge {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    transition: border-color 0.3s;
+  }
+  .badge.live { border-color: var(--low); }
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: background 0.3s;
+  }
+  .badge.live .dot {
+    background: var(--low);
+    box-shadow: 0 0 6px var(--low);
+    animation: pulse-dot 2s infinite;
+  }
+  @keyframes pulse-dot {
+    0%,100% { opacity: 1; }
+    50%      { opacity: 0.4; }
+  }
+
+  /* ── Layout ── */
+  .main { max-width: 1400px; margin: 0 auto; padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+
+  /* ── Stat cards ── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 12px;
+  }
+  @media (max-width: 1100px) { .stats-row { grid-template-columns: repeat(4, 1fr); } }
+  @media (max-width: 700px)  { .stats-row { grid-template-columns: repeat(2, 1fr); } }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.15s;
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 10px 10px 0 0;
+  }
+  .stat-card.c-high::before    { background: var(--high); }
+  .stat-card.c-default::before { background: var(--default); }
+  .stat-card.c-low::before     { background: var(--low); }
+  .stat-card.c-active::before  { background: var(--active); }
+  .stat-card.c-success::before { background: var(--success); }
+  .stat-card.c-failure::before { background: var(--failure); }
+  .stat-card.c-workers::before { background: #a78bfa; }
+
+  .stat-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .stat-value {
+    font-family: var(--font-mono);
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+    transition: color 0.3s;
+  }
+  .stat-card.c-high    .stat-value { color: var(--high); }
+  .stat-card.c-default .stat-value { color: var(--default); }
+  .stat-card.c-low     .stat-value { color: var(--low); }
+  .stat-card.c-active  .stat-value { color: var(--active); }
+  .stat-card.c-success .stat-value { color: var(--success); }
+  .stat-card.c-failure .stat-value { color: var(--failure); }
+  .stat-card.c-workers .stat-value { color: #a78bfa; }
+
+  /* ── Two-column rows ── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .panel-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  /* ── Chart ── */
+  .chart-wrap { position: relative; height: 220px; }
+
+  /* ── Queue bars ── */
+  .queue-bar-row { display: flex; flex-direction: column; gap: 18px; }
+  .qb-label-row  { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .qb-name  { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+  .qb-count { font-family: var(--font-mono); font-size: 0.85rem; font-weight: 600; }
+  .qb-track {
+    height: 8px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .qb-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+    min-width: 2px;
+  }
+  .qb-high    .qb-fill { background: var(--high); }
+  .qb-default .qb-fill { background: var(--default); }
+  .qb-low     .qb-fill { background: var(--low); }
+  .qb-high    .qb-name { color: var(--high); }
+  .qb-default .qb-name { color: var(--default); }
+  .qb-low     .qb-name { color: var(--low); }
+
+  /* ── Task form ── */
+  .form-group { margin-bottom: 14px; }
+  label { display: block; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  select, textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--font-ui);
+    font-size: 0.875rem;
+    padding: 9px 12px;
+    outline: none;
+    transition: border-color 0.2s;
+    appearance: none;
+  }
+  select:focus, textarea:focus { border-color: var(--active); }
+  textarea { font-family: var(--font-mono); font-size: 0.78rem; resize: vertical; min-height: 90px; }
+  .btn-submit {
+    width: 100%;
+    padding: 10px;
+    background: var(--active);
+    color: #000;
+    border: none;
+    border-radius: 6px;
+    font-family: var(--font-ui);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+  .btn-submit:hover   { opacity: 0.88; }
+  .btn-submit:active  { transform: scale(0.98); }
+  .btn-submit:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ── Task log ── */
+  .task-log { display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; }
+  .task-log::-webkit-scrollbar { width: 4px; }
+  .task-log::-webkit-scrollbar-track { background: transparent; }
+  .task-log::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .log-entry {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    font-size: 0.78rem;
+    animation: slide-in 0.2s ease;
+  }
+  @keyframes slide-in { from { opacity:0; transform: translateY(-6px); } to { opacity:1; transform: none; } }
+
+  .log-dot {
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .log-dot.PENDING  { background: var(--muted); }
+  .log-dot.STARTED,
+  .log-dot.RETRY    { background: var(--active); animation: pulse-dot 1s infinite; }
+  .log-dot.SUCCESS  { background: var(--success); }
+  .log-dot.FAILURE  { background: var(--failure); }
+  .log-dot.REVOKED  { background: var(--muted); opacity: 0.5; }
+
+  .log-name  { flex: 1; color: var(--text); font-family: var(--font-mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .log-pri   { font-size: 0.65rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; padding: 2px 7px; border-radius: 4px; flex-shrink: 0; }
+  .log-pri.high    { background: rgba(255,77,109,0.15); color: var(--high); }
+  .log-pri.default { background: rgba(255,214,10,0.12); color: var(--default); }
+  .log-pri.low     { background: rgba(6,214,160,0.12);  color: var(--low); }
+  .log-status { font-size: 0.68rem; color: var(--muted); flex-shrink: 0; min-width: 56px; text-align: right; }
+
+  /* ── Toast ── */
+  #toast-container { position: fixed; bottom: 24px; right: 24px; display: flex; flex-direction: column; gap: 10px; z-index: 9999; }
+  .toast {
+    min-width: 260px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 0.82rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    animation: toast-in 0.25s ease forwards;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+  .toast.out { animation: toast-out 0.3s ease forwards; }
+  @keyframes toast-in  { from { opacity:0; transform: translateX(20px); } to   { opacity:1; transform: none; } }
+  @keyframes toast-out { from { opacity:1; transform: none; } to   { opacity:0; transform: translateX(20px); } }
+  .toast-icon { font-size: 1rem; flex-shrink: 0; }
+  .toast-body { display: flex; flex-direction: column; gap: 2px; }
+  .toast-title { font-weight: 600; color: var(--text); }
+  .toast-msg   { color: var(--muted); font-size: 0.75rem; word-break: break-all; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <span class="logo">⚡ Task Queue Monitor</span>
+  <div class="badge" id="ws-badge">
+    <span class="dot"></span>
+    <span id="ws-label">Connecting...</span>
+  </div>
+</header>
+
+<main class="main">
+
+  <!-- Stat cards -->
+  <div class="stats-row">
+    <div class="stat-card c-high">
+      <div class="stat-label">High Queue</div>
+      <div class="stat-value" id="s-high">–</div>
+    </div>
+    <div class="stat-card c-default">
+      <div class="stat-label">Default Queue</div>
+      <div class="stat-value" id="s-default">–</div>
+    </div>
+    <div class="stat-card c-low">
+      <div class="stat-label">Low Queue</div>
+      <div class="stat-value" id="s-low">–</div>
+    </div>
+    <div class="stat-card c-active">
+      <div class="stat-label">Active</div>
+      <div class="stat-value" id="s-active">–</div>
+    </div>
+    <div class="stat-card c-success">
+      <div class="stat-label">Succeeded</div>
+      <div class="stat-value" id="s-success">–</div>
+    </div>
+    <div class="stat-card c-failure">
+      <div class="stat-label">Failed</div>
+      <div class="stat-value" id="s-failed">–</div>
+    </div>
+    <div class="stat-card c-workers">
+      <div class="stat-label">Workers Online</div>
+      <div class="stat-value" id="s-workers">–</div>
+    </div>
+  </div>
+
+  <!-- Row 2: chart + queue bars -->
+  <div class="two-col">
+    <div class="panel">
+      <div class="panel-title">Throughput — Success vs Failed (last 20 ticks)</div>
+      <div class="chart-wrap">
+        <canvas id="throughputChart"></canvas>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Queue Depths</div>
+      <div class="queue-bar-row">
+        <div class="qb-high">
+          <div class="qb-label-row">
+            <span class="qb-name">High</span>
+            <span class="qb-count" id="qb-high-count">0</span>
+          </div>
+          <div class="qb-track"><div class="qb-fill" id="qb-high-fill" style="width:0%"></div></div>
+        </div>
+        <div class="qb-default">
+          <div class="qb-label-row">
+            <span class="qb-name">Default</span>
+            <span class="qb-count" id="qb-default-count">0</span>
+          </div>
+          <div class="qb-track"><div class="qb-fill" id="qb-default-fill" style="width:0%"></div></div>
+        </div>
+        <div class="qb-low">
+          <div class="qb-label-row">
+            <span class="qb-name">Low</span>
+            <span class="qb-count" id="qb-low-count">0</span>
+          </div>
+          <div class="qb-track"><div class="qb-fill" id="qb-low-fill" style="width:0%"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 3: form + task log -->
+  <div class="two-col">
+    <div class="panel">
+      <div class="panel-title">Submit Task</div>
+      <div class="form-group">
+        <label for="task-type">Task Type</label>
+        <select id="task-type" onchange="updatePayload()">
+          <option value="send_email">send_email</option>
+          <option value="process_payment">process_payment</option>
+          <option value="generate_report">generate_report</option>
+          <option value="data_pipeline">data_pipeline</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="task-priority">Priority</label>
+        <select id="task-priority">
+          <option value="high">high</option>
+          <option value="default" selected>default</option>
+          <option value="low">low</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="task-payload">Payload (JSON)</label>
+        <textarea id="task-payload" rows="5"></textarea>
+      </div>
+      <button class="btn-submit" id="submit-btn" onclick="submitTask()">Submit Task</button>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Recent Tasks</div>
+      <div class="task-log" id="task-log">
+        <div style="color:var(--muted);font-size:0.8rem;text-align:center;padding:20px 0;">No tasks submitted yet.</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<div id="toast-container"></div>
+
+<script>
+// ── Payload presets ────────────────────────────────────────────────────────
+const PAYLOADS = {
+  send_email: {
+    to: "user@example.com",
+    subject: "Welcome aboard!",
+    body: "Thanks for signing up."
+  },
+  process_payment: {
+    user_id: "usr_12345",
+    amount: 99.99,
+    currency: "USD"
+  },
+  generate_report: {
+    report_type: "monthly_summary",
+    user_id: "usr_12345",
+    date_range: "last_30_days"
+  },
+  data_pipeline: {
+    source: "s3://bucket/input",
+    destination: "s3://bucket/output",
+    record_count: 1000
+  }
+};
+
+function updatePayload() {
+  const type = document.getElementById('task-type').value;
+  document.getElementById('task-payload').value = JSON.stringify(PAYLOADS[type], null, 2);
+}
+updatePayload(); // init
+
+// ── Chart.js setup ─────────────────────────────────────────────────────────
+const MAX_POINTS = 20;
+const chartData = {
+  labels: Array(MAX_POINTS).fill(''),
+  success: Array(MAX_POINTS).fill(null),
+  failed:  Array(MAX_POINTS).fill(null),
+};
+let prevSuccess = null, prevFailed = null;
+
+const ctx = document.getElementById('throughputChart').getContext('2d');
+const chart = new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: chartData.labels,
+    datasets: [
+      {
+        label: 'Success',
+        data: chartData.success,
+        borderColor: '#06d6a0',
+        backgroundColor: 'rgba(6,214,160,0.08)',
+        borderWidth: 2,
+        pointRadius: 0,
+        fill: true,
+        tension: 0.4,
+        spanGaps: true,
+      },
+      {
+        label: 'Failed',
+        data: chartData.failed,
+        borderColor: '#ff4d6d',
+        backgroundColor: 'rgba(255,77,109,0.08)',
+        borderWidth: 2,
+        pointRadius: 0,
+        fill: true,
+        tension: 0.4,
+        spanGaps: true,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: { duration: 400 },
+    interaction: { intersect: false, mode: 'index' },
+    plugins: {
+      legend: { labels: { color: '#64748b', font: { family: 'Space Grotesk', size: 11 }, boxWidth: 12 } },
+      tooltip: {
+        backgroundColor: '#1a2235',
+        borderColor: '#1e2d45',
+        borderWidth: 1,
+        titleColor: '#e2e8f0',
+        bodyColor: '#94a3b8',
+        titleFont: { family: 'JetBrains Mono' },
+      }
+    },
+    scales: {
+      x: { display: false },
+      y: {
+        min: 0,
+        ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 10 }, stepSize: 1 },
+        grid:  { color: 'rgba(30,45,69,0.8)' },
+        border: { display: false },
+      }
+    }
+  }
+});
+
+function pushChartPoint(successTotal, failedTotal) {
+  const sD = prevSuccess !== null ? Math.max(0, successTotal - prevSuccess) : 0;
+  const fD = prevFailed  !== null ? Math.max(0, failedTotal  - prevFailed)  : 0;
+  prevSuccess = successTotal;
+  prevFailed  = failedTotal;
+
+  chartData.success.push(sD);
+  chartData.failed.push(fD);
+  chartData.labels.push('');
+  if (chartData.success.length > MAX_POINTS) {
+    chartData.success.shift();
+    chartData.failed.shift();
+    chartData.labels.shift();
+  }
+  chart.data.datasets[0].data = [...chartData.success];
+  chart.data.datasets[1].data = [...chartData.failed];
+  chart.data.labels = [...chartData.labels];
+  chart.update('none');
+}
+
+// ── Stat card updater ──────────────────────────────────────────────────────
+function setCard(id, value) {
+  const el = document.getElementById(id);
+  if (el && el.textContent !== String(value)) el.textContent = value;
+}
+
+function updateBars(high, def, low) {
+  const max = Math.max(high, def, low, 1);
+  const set = (countId, fillId, val) => {
+    document.getElementById(countId).textContent = val;
+    document.getElementById(fillId).style.width = Math.max(2, (val / max) * 100) + '%';
+  };
+  set('qb-high-count',    'qb-high-fill',    high);
+  set('qb-default-count', 'qb-default-fill', def);
+  set('qb-low-count',     'qb-low-fill',     low);
+}
+
+// ── WebSocket ──────────────────────────────────────────────────────────────
+let ws;
+function connectWS() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${proto}://${location.host}/ws/stats`);
+
+  ws.onopen = () => {
+    const badge = document.getElementById('ws-badge');
+    badge.classList.add('live');
+    document.getElementById('ws-label').textContent = 'Live';
+  };
+
+  ws.onmessage = (e) => {
+    try {
+      const d = JSON.parse(e.data);
+      setCard('s-high',    d.queued_high);
+      setCard('s-default', d.queued_default);
+      setCard('s-low',     d.queued_low);
+      setCard('s-active',  d.active_tasks);
+      setCard('s-success', d.success_tasks);
+      setCard('s-failed',  d.failed_tasks);
+      setCard('s-workers', d.workers_online);
+      updateBars(d.queued_high, d.queued_default, d.queued_low);
+      pushChartPoint(d.success_tasks, d.failed_tasks);
+    } catch (_) {}
+  };
+
+  ws.onclose = () => {
+    const badge = document.getElementById('ws-badge');
+    badge.classList.remove('live');
+    document.getElementById('ws-label').textContent = 'Reconnecting...';
+    setTimeout(connectWS, 3000);
+  };
+
+  ws.onerror = () => ws.close();
+}
+connectWS();
+
+// ── Toast ──────────────────────────────────────────────────────────────────
+function showToast(icon, title, msg) {
+  const container = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.innerHTML = `
+    <span class="toast-icon">${icon}</span>
+    <div class="toast-body">
+      <span class="toast-title">${title}</span>
+      <span class="toast-msg">${msg}</span>
+    </div>`;
+  container.appendChild(t);
+  setTimeout(() => {
+    t.classList.add('out');
+    t.addEventListener('animationend', () => t.remove(), { once: true });
+  }, 4000);
+}
+
+// ── Task log ───────────────────────────────────────────────────────────────
+const MAX_LOG = 50;
+const taskLog = [];
+
+function renderLog() {
+  const el = document.getElementById('task-log');
+  if (taskLog.length === 0) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:0.8rem;text-align:center;padding:20px 0;">No tasks submitted yet.</div>';
+    return;
+  }
+  el.innerHTML = taskLog.slice().reverse().map(t => `
+    <div class="log-entry" id="log-${t.id}">
+      <span class="log-dot ${t.status}"></span>
+      <span class="log-name">${t.name}</span>
+      <span class="log-pri ${t.priority}">${t.priority}</span>
+      <span class="log-status">${t.status}</span>
+    </div>`).join('');
+}
+
+function upsertLog(entry) {
+  const idx = taskLog.findIndex(t => t.id === entry.id);
+  if (idx >= 0) taskLog[idx] = { ...taskLog[idx], ...entry };
+  else {
+    taskLog.unshift(entry);
+    if (taskLog.length > MAX_LOG) taskLog.pop();
+  }
+  renderLog();
+}
+
+// ── Poll task status ───────────────────────────────────────────────────────
+const TERMINAL = new Set(['SUCCESS', 'FAILURE', 'REVOKED']);
+
+async function pollStatus(taskId) {
+  while (true) {
+    await new Promise(r => setTimeout(r, 2000));
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`);
+      if (!res.ok) break;
+      const data = await res.json();
+      const entry = taskLog.find(t => t.id === taskId);
+      if (entry) upsertLog({ ...entry, status: data.status });
+      if (TERMINAL.has(data.status)) {
+        if (data.status === 'SUCCESS') {
+          showToast('✅', 'Task Succeeded', taskId.slice(0, 16) + '…');
+        } else if (data.status === 'FAILURE') {
+          showToast('❌', 'Task Failed', data.error || 'Unknown error');
+        }
+        break;
+      }
+    } catch (_) { break; }
+  }
+}
+
+// ── Submit task ────────────────────────────────────────────────────────────
+async function submitTask() {
+  const btn      = document.getElementById('submit-btn');
+  const typeEl   = document.getElementById('task-type');
+  const priEl    = document.getElementById('task-priority');
+  const payEl    = document.getElementById('task-payload');
+
+  let payload;
+  try {
+    payload = JSON.parse(payEl.value);
+  } catch (_) {
+    showToast('⚠️', 'Invalid JSON', 'Fix the payload before submitting.');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Submitting…';
+
+  try {
+    const res = await fetch('/api/tasks/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        task_type: typeEl.value,
+        priority:  priEl.value,
+        payload,
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      showToast('❌', 'Submit Failed', err.detail || `HTTP ${res.status}`);
+      return;
+    }
+
+    const data = await res.json();
+    showToast('🚀', 'Task Queued', `ID: ${data.task_id.slice(0, 16)}…`);
+
+    upsertLog({
+      id:       data.task_id,
+      name:     typeEl.value,
+      priority: priEl.value,
+      status:   'PENDING',
+    });
+
+    pollStatus(data.task_id);
+  } catch (err) {
+    showToast('❌', 'Network Error', err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Submit Task';
+  }
+}
+</script>
+</body>
+</html>
