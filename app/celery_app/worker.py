@@ -1,4 +1,5 @@
 import os
+import ssl
 from celery import Celery
 from app.celery_app import celery_config
 
@@ -11,6 +12,12 @@ celery_app = Celery(
     backend=result_backend,
     include=["app.celery_app.tasks.sample_tasks"],
 )
+
+# Enable SSL for Upstash/TLS Redis connections (rediss://)
+if broker_url.startswith("rediss://"):
+    _ssl = {"ssl_cert_reqs": ssl.CERT_NONE}
+    celery_app.conf.broker_use_ssl = _ssl
+    celery_app.conf.redis_backend_use_ssl = _ssl
 
 celery_app.conf.update(
     task_queues=celery_config.CELERY_QUEUES,

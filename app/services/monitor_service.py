@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import ssl
 
 import redis
 
@@ -9,15 +10,17 @@ from ..models.task import DashboardStats
 
 logger = logging.getLogger(__name__)
 
-# Use full URLs so TLS (rediss://) works for both local Docker and Upstash
-_broker_client = redis.from_url(
-    os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0"),
-    decode_responses=True,
-)
-_backend_client = redis.from_url(
-    os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/1"),
-    decode_responses=True,
-)
+def _make_client(url: str) -> redis.Redis:
+    kwargs: dict = {"decode_responses": True}
+    if url.startswith("rediss://"):
+        kwargs["ssl_cert_reqs"] = ssl.CERT_NONE
+    return redis.from_url(url, **kwargs)
+
+_broker_url  = os.getenv("CELERY_BROKER_URL",    "redis://localhost:6379/0")
+_backend_url = os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/1")
+
+_broker_client  = _make_client(_broker_url)
+_backend_client = _make_client(_backend_url)
 
 
 def get_queue_length(queue_name: str) -> int:
