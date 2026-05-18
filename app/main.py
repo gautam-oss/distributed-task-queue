@@ -78,8 +78,15 @@ async def ws_stats(ws: WebSocket) -> None:
             # Run the blocking Redis + Celery inspect calls in a thread so
             # they never stall the event loop (which would break WS keepalive)
             loop = asyncio.get_event_loop()
-            stats = await loop.run_in_executor(None, get_dashboard_stats)
-            await manager.broadcast(stats.model_dump_json())
+            try:
+                stats = await asyncio.wait_for(
+                    loop.run_in_executor(None, get_dashboard_stats),
+                    timeout=8.0,
+                )
+                await manager.broadcast(stats.model_dump_json())
+            except Exception as exc:
+                import logging
+                logging.getLogger(__name__).warning("ws_stats error: %s", exc)
             await asyncio.sleep(2)
     except WebSocketDisconnect:
         manager.disconnect(ws)

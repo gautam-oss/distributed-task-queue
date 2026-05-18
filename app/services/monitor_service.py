@@ -11,7 +11,11 @@ from ..models.task import DashboardStats
 logger = logging.getLogger(__name__)
 
 def _make_client(url: str) -> redis.Redis:
-    kwargs: dict = {"decode_responses": True}
+    kwargs: dict = {
+        "decode_responses": True,
+        "socket_timeout": 5,
+        "socket_connect_timeout": 5,
+    }
     if url.startswith("rediss://"):
         kwargs["ssl_cert_reqs"] = ssl.CERT_NONE
     return redis.from_url(url, **kwargs)
