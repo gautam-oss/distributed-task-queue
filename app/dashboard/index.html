@@ -326,6 +326,139 @@
   .toast-body { display: flex; flex-direction: column; gap: 2px; }
   .toast-title { font-weight: 600; color: var(--text); }
   .toast-msg   { color: var(--muted); font-size: 0.75rem; word-break: break-all; }
+
+  /* ── Tab navigation ── */
+  .tab-nav {
+    background: rgba(10,14,26,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 2px;
+    padding: 0 24px;
+    position: sticky;
+    top: 56px;
+    z-index: 99;
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: var(--font-ui);
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    padding: 11px 18px;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--active); border-bottom-color: var(--active); }
+
+  /* ── Inspector ── */
+  .worker-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px,1fr)); gap: 12px; }
+
+  .worker-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .worker-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: #a78bfa;
+    border-radius: 10px 10px 0 0;
+  }
+  .wc-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .wc-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--low); box-shadow: 0 0 6px var(--low); animation: pulse-dot 2s infinite; flex-shrink: 0; }
+  .wc-name { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wc-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .wc-stat { background: var(--surface2); border-radius: 6px; padding: 8px 10px; }
+  .wc-stat-label { font-size: 0.6rem; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
+  .wc-stat-val { font-family: var(--font-mono); font-size: 1.15rem; font-weight: 700; color: #a78bfa; }
+
+  .insp-subheader { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+  .insp-tabs { display: flex; gap: 4px; }
+  .insp-tab {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: var(--font-ui);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    padding: 5px 14px;
+    text-transform: uppercase;
+    transition: all 0.2s;
+  }
+  .insp-tab.active { background: var(--active); border-color: var(--active); color: #000; }
+  .insp-tab:hover:not(.active) { border-color: var(--active); color: var(--text); }
+
+  .insp-refresh-btn {
+    margin-left: auto;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 0.75rem;
+    padding: 5px 13px;
+    transition: all 0.2s;
+    font-family: var(--font-ui);
+  }
+  .insp-refresh-btn:hover { border-color: var(--active); color: var(--active); }
+  .insp-refresh-btn.spinning svg { animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .last-refresh { font-size: 0.68rem; color: var(--muted); font-family: var(--font-mono); }
+
+  .task-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+  .task-table th {
+    color: var(--muted);
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    padding: 8px 10px;
+    text-align: left;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .task-table td { padding: 9px 10px; border-bottom: 1px solid rgba(30,45,69,0.5); vertical-align: middle; }
+  .task-table tr:last-child td { border-bottom: none; }
+  .task-table tr:hover td { background: var(--surface2); }
+  .tt-mono { font-family: var(--font-mono); font-size: 0.73rem; }
+  .tt-muted { color: var(--muted); font-size: 0.7rem; }
+  .tt-name { color: var(--active); font-family: var(--font-mono); font-size: 0.73rem; }
+  .tt-worker { color: #a78bfa; font-family: var(--font-mono); font-size: 0.68rem; }
+  .tt-id { color: var(--muted); font-family: var(--font-mono); font-size: 0.68rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+
+  .btn-revoke {
+    background: rgba(255,77,109,0.1);
+    border: 1px solid rgba(255,77,109,0.3);
+    border-radius: 4px;
+    color: var(--failure);
+    cursor: pointer;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    padding: 3px 9px;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    font-family: var(--font-ui);
+  }
+  .btn-revoke:hover { background: rgba(255,77,109,0.22); border-color: var(--failure); }
+
+  .empty-state { color: var(--muted); font-size: 0.8rem; text-align: center; padding: 36px 0; }
+  .insp-loading { color: var(--active); font-family: var(--font-mono); font-size: 0.78rem; text-align: center; padding: 28px; }
+  .table-scroll { overflow-x: auto; }
 </style>
 </head>
 <body>
@@ -339,7 +472,13 @@
   </div>
 </header>
 
-<main class="main">
+<!-- Tab navigation -->
+<nav class="tab-nav">
+  <button class="tab-btn active" id="tab-btn-dashboard" onclick="switchTab('dashboard')">📊 Dashboard</button>
+  <button class="tab-btn"        id="tab-btn-inspector" onclick="switchTab('inspector')">🔬 Inspector</button>
+</nav>
+
+<main class="main" id="view-dashboard">
 
   <!-- Stat cards -->
   <div class="stats-row">
@@ -454,6 +593,37 @@
   </div>
 
 </main>
+
+<!-- ═══════════════════════════════════════ INSPECTOR VIEW ═══════════════════ -->
+<section class="main" id="view-inspector" style="display:none">
+
+  <!-- Worker cards -->
+  <div id="insp-worker-cards" class="worker-cards">
+    <div class="insp-loading">Loading workers…</div>
+  </div>
+
+  <!-- Task panel -->
+  <div class="panel">
+    <div class="insp-subheader">
+      <div class="panel-title" style="margin-bottom:0">Worker Tasks</div>
+      <span class="last-refresh" id="insp-last-refresh"></span>
+      <div class="insp-tabs">
+        <button class="insp-tab active" id="itab-active"    onclick="switchInspTab('active')">Active <span id="itab-active-count"></span></button>
+        <button class="insp-tab"        id="itab-reserved"  onclick="switchInspTab('reserved')">Reserved <span id="itab-reserved-count"></span></button>
+        <button class="insp-tab"        id="itab-scheduled" onclick="switchInspTab('scheduled')">Scheduled <span id="itab-scheduled-count"></span></button>
+      </div>
+      <button class="insp-refresh-btn" id="insp-refresh-btn" onclick="refreshInspector()">
+        <svg id="insp-spin-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:4px"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+        Refresh
+      </button>
+    </div>
+
+    <div id="insp-view-active"><div class="insp-loading">Loading…</div></div>
+    <div id="insp-view-reserved"  style="display:none"><div class="insp-loading">Loading…</div></div>
+    <div id="insp-view-scheduled" style="display:none"><div class="insp-loading">Loading…</div></div>
+  </div>
+
+</section>
 
 <div id="toast-container"></div>
 
@@ -800,6 +970,205 @@ async function submitTask() {
     btn.disabled = false;
     btn.textContent = 'Submit Task';
   }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ── Inspector ─────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+
+let currentInspTab = 'active';
+let inspectorInterval = null;
+let inspectorData = null;
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  const views = ['dashboard', 'inspector'];
+  views.forEach(v => {
+    const el = document.getElementById('view-' + v);
+    if (el) el.style.display = v === tab ? '' : 'none';
+    const btn = document.getElementById('tab-btn-' + v);
+    if (btn) btn.classList.toggle('active', v === tab);
+  });
+
+  if (tab === 'inspector') {
+    if (!inspectorData) refreshInspector();
+    if (!inspectorInterval) {
+      inspectorInterval = setInterval(refreshInspector, 5000);
+    }
+  } else {
+    if (inspectorInterval) {
+      clearInterval(inspectorInterval);
+      inspectorInterval = null;
+    }
+  }
+}
+
+function switchInspTab(tab) {
+  ['active', 'reserved', 'scheduled'].forEach(t => {
+    document.getElementById('itab-' + t).classList.toggle('active', t === tab);
+    document.getElementById('insp-view-' + t).style.display = t === tab ? '' : 'none';
+  });
+  currentInspTab = tab;
+}
+
+// ── Fetch & render ────────────────────────────────────────────────────────────
+async function refreshInspector() {
+  const btn  = document.getElementById('insp-refresh-btn');
+  const icon = document.getElementById('insp-spin-icon');
+  btn.disabled = true;
+  icon.style.animation = 'spin 0.7s linear infinite';
+
+  try {
+    const res = await fetch('/api/workers/inspect');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    inspectorData = await res.json();
+    renderInspector(inspectorData);
+    const now = new Date();
+    document.getElementById('insp-last-refresh').textContent =
+      'Updated ' + now.toLocaleTimeString();
+  } catch (e) {
+    showToast('⚠️', 'Inspector Error', e.message);
+  } finally {
+    btn.disabled = false;
+    icon.style.animation = '';
+  }
+}
+
+function renderInspector(data) {
+  renderWorkerCards(data.workers || []);
+  renderTaskView('active',    data.active    || []);
+  renderTaskView('reserved',  data.reserved  || []);
+  renderTaskView('scheduled', data.scheduled || []);
+
+  // Update tab counts
+  ['active','reserved','scheduled'].forEach(t => {
+    const count = (data[t] || []).length;
+    document.getElementById('itab-' + t + '-count').textContent =
+      count > 0 ? `(${count})` : '';
+  });
+}
+
+function renderWorkerCards(workers) {
+  const el = document.getElementById('insp-worker-cards');
+  if (workers.length === 0) {
+    el.innerHTML = '<div class="insp-loading">No workers online — is the Celery worker running?</div>';
+    return;
+  }
+  el.innerHTML = workers.map(w => `
+    <div class="worker-card">
+      <div class="wc-header">
+        <span class="wc-dot"></span>
+        <span class="wc-name" title="${w.name}">${w.name}</span>
+      </div>
+      <div class="wc-stats">
+        <div class="wc-stat">
+          <div class="wc-stat-label">Concurrency</div>
+          <div class="wc-stat-val">${w.concurrency}</div>
+        </div>
+        <div class="wc-stat">
+          <div class="wc-stat-label">Processed</div>
+          <div class="wc-stat-val">${w.processed}</div>
+        </div>
+        <div class="wc-stat">
+          <div class="wc-stat-label">Active Now</div>
+          <div class="wc-stat-val" style="color:var(--active)">${w.active}</div>
+        </div>
+        <div class="wc-stat">
+          <div class="wc-stat-label">Reserved</div>
+          <div class="wc-stat-val" style="color:var(--default)">${w.reserved}</div>
+        </div>
+      </div>
+      <div style="margin-top:10px;font-family:var(--font-mono);font-size:0.62rem;color:var(--muted)">PID ${w.pid}</div>
+    </div>`).join('');
+}
+
+function shortName(fullName) {
+  if (!fullName) return '?';
+  const parts = fullName.split('.');
+  return parts[parts.length - 1];
+}
+
+function formatArgs(task) {
+  try {
+    const k = task.kwargs || task.request?.kwargs || {};
+    const kStr = Object.entries(k).map(([key,val]) =>
+      `${key}=${JSON.stringify(val)}`).join(', ');
+    return kStr || '—';
+  } catch (_) { return '—'; }
+}
+
+function formatETA(task) {
+  const eta = task.eta || task.request?.eta;
+  if (!eta) return '—';
+  try { return new Date(eta).toLocaleTimeString(); }
+  catch (_) { return eta; }
+}
+
+function formatElapsed(task) {
+  const ts = task.time_start;
+  if (!ts) return '—';
+  const secs = Math.round(Date.now() / 1000 - ts);
+  if (secs < 60) return secs + 's';
+  return Math.floor(secs / 60) + 'm ' + (secs % 60) + 's';
+}
+
+async function revokeTask(taskId) {
+  if (!confirm(`Revoke task ${taskId.slice(0,16)}…?`)) return;
+  try {
+    const res = await fetch(`/api/tasks/${taskId}/cancel`, { method: 'DELETE' });
+    if (res.ok) {
+      showToast('🛑', 'Task Revoked', taskId.slice(0,16) + '…');
+      setTimeout(refreshInspector, 800);
+    } else {
+      showToast('❌', 'Revoke Failed', 'HTTP ' + res.status);
+    }
+  } catch (e) {
+    showToast('❌', 'Network Error', e.message);
+  }
+}
+
+function renderTaskView(type, tasks) {
+  const el = document.getElementById('insp-view-' + type);
+
+  if (tasks.length === 0) {
+    el.innerHTML = `<div class="empty-state">No ${type} tasks right now.</div>`;
+    return;
+  }
+
+  const isScheduled = type === 'scheduled';
+
+  const rows = tasks.map(t => {
+    const id       = t.id || t.request?.id || '?';
+    const name     = t.name || t.request?.name || '?';
+    const worker   = t.worker || '?';
+    const args     = formatArgs(t);
+    const extra    = isScheduled ? formatETA(t) : formatElapsed(t);
+    const extraLabel = isScheduled ? 'ETA' : 'Elapsed';
+
+    return `<tr>
+      <td><span class="tt-id" title="${id}">${id.slice(0,16)}…</span></td>
+      <td><span class="tt-name">${shortName(name)}</span><br><span class="tt-muted">${name}</span></td>
+      <td><span class="tt-worker">${worker.split('@')[1] || worker}</span></td>
+      <td class="tt-mono" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${args}">${args}</td>
+      <td class="tt-mono">${extra}</td>
+      <td><button class="btn-revoke" onclick="revokeTask('${id}')">Revoke</button></td>
+    </tr>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="table-scroll">
+      <table class="task-table">
+        <thead><tr>
+          <th>Task ID</th>
+          <th>Name</th>
+          <th>Worker</th>
+          <th>Args</th>
+          <th>${isScheduled ? 'ETA' : 'Elapsed'}</th>
+          <th></th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
 }
 </script>
 </body>

@@ -84,3 +84,47 @@ def get_worker_count() -> int:
     except Exception:
         logger.warning("Could not reach Celery workers for worker count", exc_info=True)
         return 0
+
+
+def get_inspector_data() -> dict:
+    """Full Celery inspect snapshot: active, reserved, scheduled tasks + worker stats."""
+    try:
+        insp = celery_app.control.inspect(timeout=3.0)
+        active    = insp.active()    or {}
+        reserved  = insp.reserved()  or {}
+        scheduled = insp.scheduled() or {}
+        stats     = insp.stats()     or {}
+
+        workers = []
+        for name in set(list(active) + list(stats)):
+            s    = stats.get(name, {})
+            pool = s.get("pool", {})
+            total = s.get("total", {})
+            processed = sum(total.values()) if isinstance(total, dict) else 0
+            workers.append({
+                "name":        name,
+                "pid":         s.get("pid", "?"),
+                "concurrency": pool.get("max-concurrency", "?"),
+                "processed":   processed,
+                "active":      len(active.get(name, [])),
+                "reserved":    len(reserved.get(name, [])),
+                "scheduled":   len(scheduled.get(name, [])),
+            })
+
+        # Flatten tasks with worker label
+        def _tag(mapping: dict) -> list:
+            out = []
+            for worker_name, tasks in mapping.items():
+                for t in (tasks or []):
+                    out.append({**t, "worker": worker_name})
+            return out
+
+        return {
+            "workers":   workers,
+            "active":    _tag(active),
+            "reserved":  _tag(reserved),
+            "scheduled": _tag(scheduled),
+        }
+    except Exception:
+        logger.warning("get_inspector_data failed", exc_info=True)
+        return {"workers": [], "active": [], "reserved": [], "scheduled": []}
