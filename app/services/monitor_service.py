@@ -21,7 +21,8 @@ def _make_client(url: str) -> redis.Redis:
     return redis.from_url(url, **kwargs)
 
 _broker_url  = os.getenv("CELERY_BROKER_URL",    "redis://localhost:6379/0")
-_backend_url = os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/1")
+# Note: Upstash free tier only supports db 0 — use the same URL for both
+_backend_url = os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/0")
 
 _broker_client  = _make_client(_broker_url)
 _backend_client = _make_client(_backend_url)
