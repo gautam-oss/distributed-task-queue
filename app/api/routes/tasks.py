@@ -1,4 +1,7 @@
+import traceback as tb
+
 from fastapi import APIRouter
+from fastapi.responses import JSONResponse
 
 from ...models.task import TaskRequest, TaskStatusResponse, TaskSubmitResponse
 from ...services.task_service import cancel_task, get_task_status, submit_task
@@ -7,7 +10,7 @@ router = APIRouter(prefix="/tasks", tags=["Tasks"])
 
 
 @router.post("/submit", response_model=TaskSubmitResponse, status_code=202)
-async def submit_task_endpoint(request: TaskRequest) -> TaskSubmitResponse:
+async def submit_task_endpoint(request: TaskRequest):
     """
     Submit a background task for asynchronous execution.
 
@@ -18,11 +21,17 @@ async def submit_task_endpoint(request: TaskRequest) -> TaskSubmitResponse:
     - Returns immediately with a `task_id` and `PENDING` status.
       Poll `GET /tasks/{task_id}` to track progress.
     """
-    return submit_task(
-        task_type=request.task_type,
-        priority=request.priority,
-        payload=request.payload,
-    )
+    try:
+        return submit_task(
+            task_type=request.task_type,
+            priority=request.priority,
+            payload=request.payload,
+        )
+    except Exception as exc:
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(exc), "traceback": tb.format_exc()},
+        )
 
 
 @router.get("/{task_id}", response_model=TaskStatusResponse)
