@@ -44,7 +44,7 @@ async def inspect_endpoint() -> dict:
     try:
         return await asyncio.wait_for(
             loop.run_in_executor(None, get_inspector_data),
-            timeout=8.0,
+            timeout=15.0,
         )
     except asyncio.TimeoutError:
         return {"workers": [], "active": [], "reserved": [], "scheduled": [], "error": "inspect timed out"}

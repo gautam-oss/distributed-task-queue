@@ -89,7 +89,9 @@ def get_worker_count() -> int:
 def get_inspector_data() -> dict:
     """Full Celery inspect snapshot: active, reserved, scheduled tasks + worker stats."""
     try:
-        insp = celery_app.control.inspect(timeout=3.0)
+        # Each inspect method is a separate broadcast — keep timeout short so
+        # 4 sequential calls fit comfortably within the 15-second API timeout.
+        insp = celery_app.control.inspect(timeout=1.5)
         active    = insp.active()    or {}
         reserved  = insp.reserved()  or {}
         scheduled = insp.scheduled() or {}
